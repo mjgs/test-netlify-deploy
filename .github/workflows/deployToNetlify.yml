@@ -1,0 +1,45 @@
+name: Deploy To Netlify
+on:
+  push:
+    branches: 
+      - main
+      - fix-*
+      - feature-*
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: Git Ref (Optional)    
+        required: false
+
+env:
+  site_dir: ./site
+  functions_dir: ./functions
+ 
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: Clone Deploy Repository (Latest)
+        uses: actions/checkout@v2
+        if: ${{ github.event.inputs.git_ref == '' }}
+ 
+      - name: Clone Deploy Repository (Custom Ref)
+        uses: actions/checkout@v2
+        if: ${{ github.event.inputs.git_ref != '' }}
+        with:
+          ref: ${{ github.event.inputs.git_ref }}
+ 
+      - name: Setup NodeJS
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.14.2'
+     
+      - name: Deploy using Netlify CLI
+        uses: netlify/actions/cli@master
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        with:
+          args: deploy --dir=$site_dir --functions=$functions_dir --prod
+          secrets: '["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"]'
